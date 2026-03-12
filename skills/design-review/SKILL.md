@@ -12,7 +12,7 @@ Run once at project start. Produces a design doc, project CLAUDE.md, gets review
 1. Read the issue from **Linear** for the target project — description, goals, acceptance criteria, linked references
 2. For new projects: create directory structure and initialize git repo
    ```
-   /home/sujshe/projects/<project-name>/
+   $HOME/projects/<project-name>/
    └── docs/
    ```
 3. For existing projects: verify `docs/` exists, check for prior design docs and CLAUDE.md
