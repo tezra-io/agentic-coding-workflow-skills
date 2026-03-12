@@ -12,10 +12,19 @@ Run once at project start. Produces a design doc, project CLAUDE.md, gets review
 1. Read the issue from **Linear** for the target project — description, goals, acceptance criteria, linked references
 2. For new projects: create directory structure and initialize git repo
    ```
-   $HOME/projects/<project-name>/
+   /home/sujshe/projects/<project-name>/
    └── docs/
    ```
 3. For existing projects: verify `docs/` exists, check for prior design docs and CLAUDE.md
+
+## Phase 0.5: Approaches (before drafting)
+
+Before committing to a design, propose **2-3 architectural approaches** with trade-offs. For each:
+- Brief description of the approach
+- Key trade-offs (complexity, performance, maintainability, risk)
+- Your recommendation and why
+
+Present these to the human. Only proceed to Phase 1 after an approach is chosen. This catches bad architectural decisions before anyone spends time writing a full design doc.
 
 ## Phase 1: Draft
 
@@ -23,7 +32,7 @@ Run once at project start. Produces a design doc, project CLAUDE.md, gets review
 
 Spin up a **Claude Code** session with these instructions:
 - Read CLAUDE.md if it exists
-- Pass in the Linear issue description and any linked design docs
+- Pass in the Linear issue description, any linked design docs, **and the chosen approach from Phase 0.5**
 - Draft the design doc at `docs/<issue-id>-design.md`
 
 Design doc covers:
@@ -45,9 +54,9 @@ In the same session, create or update `CLAUDE.md` at project root using the stan
 
 Keep both docs concise — docs that nobody reads are worse than no docs.
 
-## Phase 2: Review
+## Phase 2: Review Loop
 
-Spin up **Claude agent team** (Sonnet models) to review the draft. Evaluate on:
+Spin up a **reviewer** (Sonnet model) to review the draft. Evaluate on:
 
 | Axis | Key Questions |
 |------|--------------|
@@ -62,6 +71,8 @@ Categorize findings:
 - **Blocker** — must resolve before build starts
 - **Recommendation** — should address, human decides
 - **Note** — context for the builder, no action needed
+
+**Review loop:** If blockers are found, fix them in the design doc and re-dispatch the reviewer. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings.
 
 ## Phase 3: Human Review
 
