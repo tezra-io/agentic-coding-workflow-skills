@@ -1,0 +1,17 @@
+{
+  "eval_id": 4,
+  "eval_name": "rust-unsafe-concurrency",
+  "prompt": "Review this Rust WebSocket handler code. It manages connections for a multi-agent gateway.",
+  "assertions": [
+    {"text": "Identifies unsafe static mut CONNECTION_COUNT as a data race (UB in Rust)", "passed": null, "evidence": ""},
+    {"text": "Flags hardcoded secret key in WsState::new()", "passed": null, "evidence": ""},
+    {"text": "Identifies command injection via execute_command (passes raw input to sh -c)", "passed": null, "evidence": ""},
+    {"text": "Flags path traversal in load_config (user-controlled path appended to /etc/)", "passed": null, "evidence": ""},
+    {"text": "Identifies secret_key leaking in serialize_state output", "passed": null, "evidence": ""},
+    {"text": "Flags .unwrap() on send_to_user (panics if channel closed)", "passed": null, "evidence": ""},
+    {"text": "Identifies weak tests (assert!(true) is meaningless)", "passed": null, "evidence": ""},
+    {"text": "Notes that broadcast silently drops send errors (let _ = ...)", "passed": null, "evidence": ""},
+    {"text": "Uses P0-P3 severity format", "passed": null, "evidence": ""},
+    {"text": "Includes Top Issues TL;DR section", "passed": null, "evidence": ""}
+  ]
+}

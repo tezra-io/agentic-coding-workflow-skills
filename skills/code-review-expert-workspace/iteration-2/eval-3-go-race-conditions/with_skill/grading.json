@@ -1,0 +1,83 @@
+{
+  "expectations": [
+    {
+      "text": "Review identifies race conditions on sm.sessions map access",
+      "passed": true,
+      "evidence": "Finding #1 (P0): Lists all 5 functions with unprotected map access (cleanupLoop, CreateSession, UpdateSession, ImportSessions, GetStats) plus activeCount."
+    },
+    {
+      "text": "Review identifies race condition: cleanupLoop iterates map without lock",
+      "passed": true,
+      "evidence": "Finding #1 (P0) specifically lists 'cleanupLoop (lines 53-56): iterates and deletes from the map with no lock.'"
+    },
+    {
+      "text": "Review identifies race condition: UpdateSession accesses session without lock",
+      "passed": true,
+      "evidence": "Finding #1 (P0) lists 'UpdateSession (lines 120-132): reads and writes to the map with no lock.'"
+    },
+    {
+      "text": "Review flags path traversal vulnerability in ExportSessions/ImportSessions",
+      "passed": true,
+      "evidence": "Finding #4 (P1): 'Path traversal in ExportSessions and ImportSessions' with filepath.Base() fix."
+    },
+    {
+      "text": "Review identifies the global mutable activeCount variable as unsafe for concurrent access",
+      "passed": true,
+      "evidence": "Finding #1 (P0) explicitly calls out activeCount: 'the package-level activeCount variable (lines 37, 57, 90, 153, 198) is modified from multiple goroutines without any synchronization.' Also Finding #6 (P1) addresses global singleton."
+    },
+    {
+      "text": "Review flags ignored json.Unmarshal errors (CreateSession, ImportSessions)",
+      "passed": true,
+      "evidence": "Finding #7 (P2): Lists ignored unmarshal errors at lines 72, 128, and 192."
+    },
+    {
+      "text": "Review identifies dead code: migrateV1Sessions and/or BulkCleanup",
+      "passed": true,
+      "evidence": "Removal/Iteration Plan lists both BulkCleanup (lines 215-226) and migrateV1Sessions (lines 229-244) as safe to remove."
+    },
+    {
+      "text": "Review uses the P0-P3 severity format from the skill",
+      "passed": true,
+      "evidence": "P0 (3), P1 (3), P2 (6), P3 (2) with standard format headers."
+    },
+    {
+      "text": "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)",
+      "passed": true,
+      "evidence": "Header: 'Overall assessment: REQUEST_CHANGES'"
+    },
+    {
+      "text": "Review identifies TOCTOU in DeleteSession (check-then-act with lock release in between)",
+      "passed": true,
+      "evidence": "Finding #3 (P0): 'TOCTOU in DeleteSession: double-lock with gap' explaining the two-critical-section pattern."
+    },
+    {
+      "text": "Review includes a Top Issues TL;DR section listing 3-5 top issues",
+      "passed": true,
+      "evidence": "Top Issues section lists 3 items: race conditions on map/counter, path traversal, predictable session IDs."
+    },
+    {
+      "text": "Review has 3 or fewer P0 findings",
+      "passed": true,
+      "evidence": "Exactly 3 P0 findings: consolidated race conditions, GetSession TOCTOU, DeleteSession TOCTOU."
+    },
+    {
+      "text": "Review has 15 or fewer total individually listed findings",
+      "passed": true,
+      "evidence": "Exactly 14 findings numbered 1-14."
+    },
+    {
+      "text": "Review consolidates related race condition findings (not listing each function separately as P0)",
+      "passed": true,
+      "evidence": "Finding #1 consolidates 5+ race condition locations into a single P0 entry. Iteration 1 had 8 separate P0 findings for the same issue."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 97.3
+  }
+}

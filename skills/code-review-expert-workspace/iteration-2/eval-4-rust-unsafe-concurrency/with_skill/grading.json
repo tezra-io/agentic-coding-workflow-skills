@@ -1,0 +1,15 @@
+{
+  "eval_id": 4,
+  "expectations": [
+    {"text": "Identifies unsafe static mut CONNECTION_COUNT as a data race (UB in Rust)", "passed": true, "evidence": "P0 finding #2 — correctly identifies UB, suggests AtomicU64"},
+    {"text": "Flags hardcoded secret key in WsState::new()", "passed": true, "evidence": "P0 finding #3 — flags hardcoded key AND its leak via serialize_state"},
+    {"text": "Identifies command injection via execute_command (passes raw input to sh -c)", "passed": true, "evidence": "P0 finding #1 — correctly identifies as full RCE, suggests removal or allowlist"},
+    {"text": "Flags path traversal in load_config (user-controlled path appended to /etc/)", "passed": true, "evidence": "P1 finding #4 — identifies ../../etc/passwd attack, suggests canonicalize"},
+    {"text": "Identifies secret_key leaking in serialize_state output", "passed": true, "evidence": "Covered in P0 finding #3 — notes key included in serialized output"},
+    {"text": "Flags .unwrap() on send_to_user (panics if channel closed)", "passed": true, "evidence": "P1 finding #5 — correctly identifies panic risk in WebSocket context"},
+    {"text": "Identifies weak tests (assert!(true) is meaningless)", "passed": true, "evidence": "P2 finding #8 — flags both tests as meaningless, suggests real assertions"},
+    {"text": "Notes that broadcast silently drops send errors (let _ = ...)", "passed": true, "evidence": "P2 finding #6 — identifies stale connection accumulation"},
+    {"text": "Uses P0-P3 severity format", "passed": true, "evidence": "All findings categorized P0-P3 with correct calibration (3 P0s, 2 P1s)"},
+    {"text": "Includes Top Issues TL;DR section", "passed": true, "evidence": "Top Issues section with 3 items listed by real-world impact"}
+  ]
+}

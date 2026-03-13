@@ -1,0 +1,89 @@
+{
+  "expectations": [
+    {
+      "text": "Review identifies SRP violation - OrderService handles too many concerns",
+      "passed": true,
+      "evidence": "Finding #6 (P1): 'SRP violation: God class with 6+ responsibilities' - lists order CRUD, payment, inventory, caching, discounts, stats, notifications, enrichment as separate concerns."
+    },
+    {
+      "text": "Review flags N+1 query pattern in getUserOrders (nested API calls per order per item)",
+      "passed": true,
+      "evidence": "Finding #7 (P1): 'N+1 HTTP calls in loops' - identifies 3 locations including getUserOrders lines 139-148. Notes '40+ sequential HTTP round trips' for 20 items."
+    },
+    {
+      "text": "Review identifies race condition: payment charged before inventory reserved",
+      "passed": true,
+      "evidence": "Finding #3 (P0): 'Race condition: check-then-act on inventory (TOCTOU)' - explains that stock is checked first, payment charged, then inventory reserved, with overselling risk."
+    },
+    {
+      "text": "Review flags SQL injection in getOrdersByStatus (string interpolation with parameterized query syntax mismatch)",
+      "passed": true,
+      "evidence": "Finding #1 (P0): Identifies template literal interpolation `'${status}'` while parameterized argument is passed but unused due to missing `$1` placeholder."
+    },
+    {
+      "text": "Review identifies missing null check on getOrder result (result.rows[0] could be undefined)",
+      "passed": true,
+      "evidence": "Finding #14 (P2): 'No null check on query results' - identifies result.rows[0] access without check in getOrder, getUserOrders (JSON.parse), and calculateDiscount."
+    },
+    {
+      "text": "Review flags == instead of === in cancelOrder status comparison",
+      "passed": true,
+      "evidence": "Finding #9 (P1): 'Loose equality comparison (`==` instead of `===`)' at line 159."
+    },
+    {
+      "text": "Review uses the P0-P3 severity format from the skill",
+      "passed": true,
+      "evidence": "Review uses: '### P0 - Critical' (4 items), '### P1 - High' (6 items), '### P2 - Medium' (10 items), '### P3 - Low' (5 items)."
+    },
+    {
+      "text": "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)",
+      "passed": true,
+      "evidence": "Header: '**Overall assessment**: REQUEST_CHANGES'"
+    },
+    {
+      "text": "Review mentions the dead exportOrders method or unused legacy getOrdersByStatus",
+      "passed": true,
+      "evidence": "Finding #22 (P3): 'Dead code: exportOrders stub'. Finding #25 (P3): 'Legacy method without deprecation annotation' for getOrdersByStatus. Both also in Removal/Iteration Plan."
+    },
+    {
+      "text": "Review identifies that notification failure is silently swallowed",
+      "passed": true,
+      "evidence": "Finding #12 (P2): 'Swallowed exception in notification' - notes error details are discarded, making debugging impossible."
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 117.1
+  },
+  "claims": [
+    {
+      "claim": "Found 25 total issues",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Counted 4 P0 + 6 P1 + 10 P2 + 5 P3 = 25 findings"
+    },
+    {
+      "claim": "Severity levels appropriately assigned",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The == vs === comparison is flagged as P1 (High, should fix before merge) which seems overly severe for a type-safe string comparison. The practical impact is nil for string-to-string comparison in TypeScript. P3 would be more appropriate."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Review flags == instead of === in cancelOrder status comparison",
+        "reason": "The assertion checks detection but not severity calibration. The review rated this P1 (High) when it's really P3 (style). An assertion checking for appropriate severity would be more discriminating."
+      },
+      {
+        "reason": "No assertion checks whether the review identifies the missing error handling for inventory reservation failure after payment is charged (a critical inconsistency). This is arguably more important than the == vs === issue."
+      }
+    ],
+    "overall": "Strong detection coverage. Severity calibration could use refinement - some findings are over-inflated."
+  }
+}

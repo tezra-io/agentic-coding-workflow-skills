@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "skill_name": "code-review-expert",
+    "skill_path": "/Users/sujshe/projects/agentic-coding-workflow-skills/skills/code-review-expert",
+    "executor_model": "claude-opus-4-6",
+    "timestamp": "2026-03-12T23:30:00Z",
+    "evals_run": [1, 2, 3],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "python-api-security",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 118.6,
+        "tokens": 23266,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Review identifies SQL injection in at least 3 endpoints", "passed": true, "evidence": "Finding #2 identifies 6 locations with f-string SQL injection"},
+        {"text": "Review flags the hardcoded API key (ADMIN_API_KEY) as P0 or P1", "passed": true, "evidence": "Finding #1 (P0) explicitly names the hardcoded key"},
+        {"text": "Review identifies missing authentication on CRUD endpoints", "passed": true, "evidence": "Finding #6 (P1) lists all 5 unprotected endpoints"},
+        {"text": "Review flags plaintext password storage and logging", "passed": true, "evidence": "Finding #3 (P0) storage, Finding #9 (P1) logging"},
+        {"text": "Review identifies path traversal vulnerability in export_user_data", "passed": true, "evidence": "Finding #5 (P0) with attack vector example"},
+        {"text": "Review flags the swallowed exception in the email sending block", "passed": true, "evidence": "Finding #15 (P2) identifies bare except+pass pattern"},
+        {"text": "Review uses the P0-P3 severity format from the skill", "passed": true, "evidence": "Uses exact P0-P3 headers with numbered findings"},
+        {"text": "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)", "passed": true, "evidence": "Header: Overall assessment: REQUEST_CHANGES"},
+        {"text": "Review includes a Next Steps section with options", "passed": true, "evidence": "Full Next Steps with 4 numbered options"},
+        {"text": "Review identifies the password being sent in the welcome email", "passed": true, "evidence": "Finding #4 (P0) with line reference and fix suggestion"}
+      ],
+      "notes": [
+        "24 total findings may overwhelm the developer",
+        "Severity calibration is reasonable for this test case",
+        "Removal/Iteration Plan properly populated with 2 items"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "typescript-solid-perf",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 117.1,
+        "tokens": 24515,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Review identifies SRP violation - OrderService handles too many concerns", "passed": true, "evidence": "Finding #6 (P1): God class with 6+ responsibilities"},
+        {"text": "Review flags N+1 query pattern in getUserOrders", "passed": true, "evidence": "Finding #7 (P1): 3 locations, notes 40+ round trips"},
+        {"text": "Review identifies race condition: payment charged before inventory reserved", "passed": true, "evidence": "Finding #3 (P0): TOCTOU on inventory check"},
+        {"text": "Review flags SQL injection in getOrdersByStatus", "passed": true, "evidence": "Finding #1 (P0): template literal with unused parameterized arg"},
+        {"text": "Review identifies missing null check on getOrder result", "passed": true, "evidence": "Finding #14 (P2): result.rows[0] undefined risk"},
+        {"text": "Review flags == instead of === in cancelOrder status comparison", "passed": true, "evidence": "Finding #9 (P1): loose equality flagged"},
+        {"text": "Review uses the P0-P3 severity format from the skill", "passed": true, "evidence": "P0 (4), P1 (6), P2 (10), P3 (5)"},
+        {"text": "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)", "passed": true, "evidence": "REQUEST_CHANGES"},
+        {"text": "Review mentions the dead exportOrders method or unused legacy getOrdersByStatus", "passed": true, "evidence": "Findings #22 and #25 plus Removal Plan"},
+        {"text": "Review identifies that notification failure is silently swallowed", "passed": true, "evidence": "Finding #12 (P2): error details discarded"}
+      ],
+      "notes": [
+        "== vs === rated P1 which is over-inflated for string comparison",
+        "25 total findings - review is quite long",
+        "Floating-point money arithmetic caught (good domain-specific finding)"
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "go-race-conditions",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 128.5,
+        "tokens": 24107,
+        "tool_calls": 8,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Review identifies race condition: CreateSession without lock", "passed": true, "evidence": "Finding #3 (P0)"},
+        {"text": "Review identifies race condition: cleanupLoop without lock", "passed": true, "evidence": "Finding #1 (P0)"},
+        {"text": "Review identifies race condition: UpdateSession without lock", "passed": true, "evidence": "Finding #4 (P0)"},
+        {"text": "Review flags path traversal in ExportSessions/ImportSessions", "passed": true, "evidence": "Findings #7 and #8 (both P0)"},
+        {"text": "Review identifies global mutable activeCount as unsafe", "passed": true, "evidence": "Finding #2 (P0) lists all 5 access points"},
+        {"text": "Review flags ignored json.Unmarshal errors", "passed": true, "evidence": "Findings #9, #10, #11 (all P1)"},
+        {"text": "Review identifies dead code: migrateV1Sessions and/or BulkCleanup", "passed": true, "evidence": "Both in Removal/Iteration Plan as safe to remove"},
+        {"text": "Review uses the P0-P3 severity format from the skill", "passed": true, "evidence": "P0 (8), P1 (8), P2 (8), P3 (4)"},
+        {"text": "Review includes an overall assessment", "passed": true, "evidence": "REQUEST_CHANGES"},
+        {"text": "Review identifies TOCTOU in DeleteSession", "passed": true, "evidence": "Finding #6 (P0): double-lock TOCTOU gap"}
+      ],
+      "notes": [
+        "8 P0 findings dilutes the severity level - not all are truly Critical",
+        "28 total findings is the longest review - may overwhelm developer",
+        "Good detection of Go-specific issues (map concurrency panic, ioutil deprecation)"
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0},
+      "time_seconds": {"mean": 121.4, "stddev": 5.1, "min": 117.1, "max": 128.5},
+      "tokens": {"mean": 23963, "stddev": 520, "min": 23266, "max": 24515}
+    }
+  },
+  "notes": [
+    "All 30 assertions pass across all 3 test cases (100% pass rate) - assertions may not be discriminating enough",
+    "Average review length: 25.7 findings per review (24, 25, 28) - may overwhelm developers",
+    "Severity inflation observed: Go review has 8 P0s, TypeScript has == vs === at P1",
+    "No baseline runs (Claude.ai adaptation) - cannot measure skill delta vs no-skill",
+    "Reviews consistently follow the output format template with all required sections",
+    "Average execution: ~121s, ~24K tokens per review"
+  ]
+}

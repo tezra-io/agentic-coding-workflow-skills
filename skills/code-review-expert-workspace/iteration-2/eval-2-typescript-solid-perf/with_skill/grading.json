@@ -1,0 +1,83 @@
+{
+  "expectations": [
+    {
+      "text": "Review identifies SRP violation - OrderService handles too many concerns",
+      "passed": true,
+      "evidence": "Finding #7 (P2): 'SRP violation: OrderService is a god class' - correctly demoted from P1 to P2 with 6 responsibilities listed."
+    },
+    {
+      "text": "Review flags N+1 query pattern in getUserOrders (nested API calls per order per item)",
+      "passed": true,
+      "evidence": "Finding #5 (P1): 'N+1 HTTP calls to inventory service' listing 3 locations with '50+ round-trips' example."
+    },
+    {
+      "text": "Review identifies race condition: payment charged before inventory reserved",
+      "passed": true,
+      "evidence": "Finding #2 (P0): 'TOCTOU race condition: inventory check then reserve' explaining the temporal gap."
+    },
+    {
+      "text": "Review flags SQL injection in getOrdersByStatus",
+      "passed": true,
+      "evidence": "Finding #1 (P0): 'SQL injection in getOrdersByStatus' with template literal interpolation analysis."
+    },
+    {
+      "text": "Review identifies missing null check on getOrder result",
+      "passed": true,
+      "evidence": "Finding #9 (P2): 'Missing null checks on database query results' covering getOrder and calculateDiscount."
+    },
+    {
+      "text": "Review flags == instead of === in cancelOrder status comparison at P3 severity (not P1)",
+      "passed": true,
+      "evidence": "Finding #13 (P3): '== instead of === for string comparison' - correctly rated P3 with note that behavior is identical for strings."
+    },
+    {
+      "text": "Review uses the P0-P3 severity format from the skill",
+      "passed": true,
+      "evidence": "Uses P0 (3), P1 (3), P2 (6), P3 (2) with exact format headers."
+    },
+    {
+      "text": "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)",
+      "passed": true,
+      "evidence": "Header: 'Overall assessment: REQUEST_CHANGES'"
+    },
+    {
+      "text": "Review mentions the dead exportOrders method or unused legacy getOrdersByStatus",
+      "passed": true,
+      "evidence": "Removal/Iteration Plan includes both: exportOrders (safe to remove) and getOrdersByStatus (defer with immediate SQL injection fix)."
+    },
+    {
+      "text": "Review identifies that notification failure is silently swallowed",
+      "passed": true,
+      "evidence": "Finding #10 (P2): 'Swallowed notification exception' - notes error variable captured but never used."
+    },
+    {
+      "text": "Review includes a Top Issues TL;DR section listing 3-5 top issues",
+      "passed": true,
+      "evidence": "Top Issues section lists 5 items: SQL injection, TOCTOU race, no transaction/rollback, IDOR, floating-point currency."
+    },
+    {
+      "text": "Review has 3 or fewer P0 findings",
+      "passed": true,
+      "evidence": "Exactly 3 P0 findings: SQL injection, TOCTOU inventory, no transaction/compensation."
+    },
+    {
+      "text": "Review has 15 or fewer total individually listed findings",
+      "passed": true,
+      "evidence": "Exactly 14 findings numbered 1-14."
+    },
+    {
+      "text": "Review consolidates related N+1 findings into a single entry",
+      "passed": true,
+      "evidence": "Finding #5 lists all 3 N+1 locations (createOrder stock, createOrder price, getUserOrders enrichment) as one entry."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 128.8
+  }
+}

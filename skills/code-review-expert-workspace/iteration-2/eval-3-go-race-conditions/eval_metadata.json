@@ -1,0 +1,21 @@
+{
+  "eval_id": 3,
+  "eval_name": "go-race-conditions",
+  "prompt": "Check my Go changes for issues. I wrote a session manager with in-memory storage for our HTTP service.",
+  "assertions": [
+    "Review identifies race conditions on sm.sessions map access",
+    "Review identifies race condition: cleanupLoop iterates map without lock",
+    "Review identifies race condition: UpdateSession accesses session without lock",
+    "Review flags path traversal vulnerability in ExportSessions/ImportSessions",
+    "Review identifies the global mutable activeCount variable as unsafe for concurrent access",
+    "Review flags ignored json.Unmarshal errors (CreateSession, ImportSessions)",
+    "Review identifies dead code: migrateV1Sessions and/or BulkCleanup",
+    "Review uses the P0-P3 severity format from the skill",
+    "Review includes an overall assessment (APPROVE/REQUEST_CHANGES/COMMENT)",
+    "Review identifies TOCTOU in DeleteSession (check-then-act with lock release in between)",
+    "Review includes a Top Issues TL;DR section listing 3-5 top issues",
+    "Review has 3 or fewer P0 findings",
+    "Review has 15 or fewer total individually listed findings",
+    "Review consolidates related race condition findings (not listing each function separately as P0)"
+  ]
+}
