@@ -72,7 +72,15 @@ Living knowledge base. Consult at session start alongside this CLAUDE.md.
 - `docs/lessons.md` — Lessons from past mistakes
 
 ## Code Style & Conventions
-<!-- Project-specific conventions: naming, patterns, preferences -->
+<!-- Add project-specific conventions below these universal rules -->
+
+### Universal Rules
+- Prefer composition/strategies over inheritance hierarchies — if subclasses only differ in 1-2 methods, use a strategy/callback instead
+- Use execute-around for paired actions (open/close, lock/unlock, setup/teardown) — expose one function with a callback so the caller can't forget cleanup
+- No magic literals — use named constants or zero-argument methods
+- Initialize all state at construction time — never rely on callers to set fields in the right order
+- Never return raw mutable collections from getters — return copies, immutable views, or domain-specific methods
+- Apply patterns incrementally — write code first, refactor when friction appears. Patterns are refactoring targets, not upfront mandates
 
 ## Commands Reference
 ```sh

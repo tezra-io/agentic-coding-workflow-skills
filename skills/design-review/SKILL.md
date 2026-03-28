@@ -1,9 +1,9 @@
 ---
-name: design-review
-description: Architecture and design review for new projects or major features. Use at project kickoff when the task involves new modules, multi-file changes, or architectural decisions. Produces an approved design doc, a CLAUDE.md, and creates Linear issues for implementation. Also use when someone asks to "design", "architect", or "plan" a feature, or when a task touches 4+ files or introduces a new subsystem. Not needed for small bug fixes, single-file changes, or well-understood patterns under 3 files.
+name: design
+description: Architecture and design for new projects, major features, or significant changes. Use at project kickoff when the task involves new modules, multi-file changes, or architectural decisions. Produces an approved design doc, a CLAUDE.md, and creates Linear issues for implementation. Also use when someone asks to "design", "architect", or "plan" a feature, when writing a design doc, or when a task touches 4+ files or introduces a new subsystem. Applies to new features, feature upgrades, design changes, and architectural changes. Not needed for small bug fixes, single-file changes, or well-understood patterns under 3 files.
 ---
 
-# Design Review
+# Design
 
 Run once at project start. Produces a design doc, project CLAUDE.md, gets reviewed and approved, then breaks into Linear issues.
 
@@ -35,6 +35,37 @@ If the task is borderline, tell the human: "This looks small enough to skip a fu
    ```
 3. For existing projects: verify `docs/` exists, check for prior design docs and CLAUDE.md
 
+## Phase 0.2: LSP Plugin Setup
+
+After the tech stack is identified (from the issue, existing project, or Phase 0.5 decision), install the appropriate Claude Code LSP plugin in the project directory. This gives Claude Code language-aware intelligence (go-to-definition, type checking, diagnostics) during implementation.
+
+**Language → Plugin mapping:**
+
+| Language | Plugin |
+|----------|--------|
+| TypeScript / JavaScript | `typescript-lsp@claude-plugins-official` |
+| Python | `pyright-lsp@claude-plugins-official` |
+| Rust | `rust-analyzer-lsp@claude-plugins-official` |
+| Go | `gopls-lsp@claude-plugins-official` |
+| C# | `csharp-lsp@claude-plugins-official` |
+| Java | `java-lsp@claude-plugins-official` |
+| Kotlin | `kotlin-lsp@claude-plugins-official` |
+| Swift | `swift-lsp@claude-plugins-official` |
+| PHP | `php-lsp@claude-plugins-official` |
+| Lua | `lua-lsp@claude-plugins-official` |
+| C / C++ | `clangd-lsp@claude-plugins-official` |
+
+**How to install:** Run the plugin CLI command from the project root directory:
+
+```bash
+cd ~/projects/<project-name> && claude plugin install <plugin>@claude-plugins-official --scope project
+```
+
+- Install **one** plugin per project based on the primary language
+- For multi-language projects (e.g., Rust + Elixir), install the plugin for the primary language being built in the current design
+- Skip if the plugin is already installed (check `.claude/plugins/` in project dir)
+- This runs once during design phase — all subsequent Claude Code sessions in that project automatically get LSP support
+
 ## Phase 0.5: Approaches (before drafting)
 
 Before committing to a design, propose **2-3 architectural approaches** with trade-offs. For each:
@@ -54,7 +85,7 @@ Spawn a **Claude Code** session (via `sessions_spawn` with `runtime: "acp"` or t
 - The chosen approach from Phase 0.5 (paste your recommendation and the human's choice)
 - Any linked design docs or prior art
 - Draft the design doc at `docs/<issue-id>-design.md`
-- Create or update `CLAUDE.md` at project root using the template at `skills/design-review/CLAUDE_TEMPLATE.md`
+- Create or update `CLAUDE.md` at project root using the template at `skills/design/CLAUDE_TEMPLATE.md`
 
 If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, and coding conventions.
 
