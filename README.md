@@ -6,6 +6,11 @@ Public reference implementation of two workflow skills used in our founder-build
 
 - `skills/design-review` — project kickoff architecture workflow
 - `skills/dev-build` — implementation + review + ship workflow loop
+- `skills/linear-cli` — manage Linear issues from the command line with git integration
+
+## Included Commands
+
+- `commands/codex-review` — run expert code/doc reviews via the OpenAI Codex CLI
 
 ## Why these exist
 
