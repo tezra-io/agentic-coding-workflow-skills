@@ -1,115 +1,78 @@
 # CLAUDE.md Template
-# Based on Boris Cherny's CLAUDE.md conventions.
-# Copy into new projects and fill in project-specific sections.
-# Remove comments and unused sections.
+# Copy into new projects. Fill in {placeholders}. Remove comments.
 
 # {Project Name}
 
-This file is Claude's project memory. Update it whenever Claude makes a mistake so it doesn't repeat it.
-
-## Project Overview
-<!-- Tech stack, purpose, key dependencies -->
+## Project
+<!-- One-liner: what it is, stack, key deps -->
 
 ## How to Work
 
 ### Planning
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- Write detailed specs upfront to reduce ambiguity — a good plan means a 1-shot implementation
-- If something goes sideways, STOP and re-plan. Don't keep pushing.
-- Use plan mode for verification steps, not just building
+- Plan mode for any non-trivial task (3+ steps or architectural decisions)
+- Detailed specs upfront — good plan = 1-shot implementation
+- If something goes sideways, STOP and re-plan
+
+### Test-First (Mandatory)
+1. Write failing tests that define correct behavior
+2. Make them pass
+3. Refactor while green
+
+"Write failing tests, then make them pass" — not "implement this feature."
 
 ### Verification
-Every change follows this loop before it's considered done:
-1. Make changes
-2. Run typecheck: `{typecheck_command}`
-3. Run tests: `{test_command}`
-4. Lint: `{lint_command}`
-5. Before PR: run full suite, diff behavior against main when relevant
+1. Write failing tests
+2. Implement to pass them
+3. Typecheck: `{typecheck_command}`
+4. Full test suite: `{test_command}`
+5. Lint: `{lint_command}`
 
-Never mark a task complete without proving it works. Ask yourself: "Would a staff engineer approve this?"
+Never mark done without proving it works.
 
-### Parallel Work
-- Use subagents to keep the main context window clean and focused
-- One task per subagent — offload research, exploration, and analysis
-- Only one agent should edit a given file at a time
-- For fully parallel workstreams: `git worktree add .claude/worktrees/<n> origin/main`
+## Code Rules (Non-Negotiable)
 
-### Bug Fixing
-- Clear reproduction? Investigate and fix directly — check logs, errors, failing tests
-- Fix failing CI without being told how
-- Ambiguous bug? Clarify scope before proceeding
+1. **Linear flow.** Max 2 nesting levels. Top to bottom.
+2. **Bound loops.** Explicit max on retries, polls, recursion. Define cap behavior.
+3. **Small functions.** 40-60 lines max. One job per function.
+4. **Own resources.** Open → close on every path, including errors.
+5. **Narrow state.** No module globals. Pass deps explicitly.
+6. **Assert assumptions.** Guards and validation on every public function. Fail loud.
+7. **Never swallow errors.** No bare `rescue`. No `{:error, _} -> :ok`. Log, raise, or return.
+8. **Visible side effects.** I/O obvious at call site. Separate pure from effectful.
+9. **Minimal indirection.** Readable > elegant. One layer of abstraction max.
+10. **Warnings = errors.** Linters, typecheckers, analyzers are hard gates. Zero warnings.
 
-## Project Documentation (`docs/`)
-Living knowledge base. Consult at session start alongside this CLAUDE.md.
+## Conventions
+<!-- Project-specific: language idioms, error handling patterns, naming -->
 
-- **`docs/spec.md`** — Product specification: feature behaviors, business rules, constraints.
-- **`docs/tech.md`** — Technical architecture: stack, schema, infrastructure, key decisions.
-- **`docs/lessons.md`** — Rules derived from past mistakes. Review at session start.
-
-### When to update docs
-- **`docs/spec.md`**: When behavior changes — new features, modified flows, changed business rules.
-- **`docs/tech.md`**: When architecture changes — new dependencies, schema migrations, infrastructure decisions.
-- **`docs/lessons.md`**: Immediately after any correction.
-
-## Task Management Workflow
-1. **Plan First**: Write a plan with checkable items before starting.
-2. **Verify Plan**: Check in before starting implementation.
-3. **Track Progress**: Mark items complete as you go.
-4. **Explain Changes**: High-level summary at each step.
-5. **Update Docs**: Update spec.md and tech.md if behavior or architecture changed.
-6. **Capture Lessons**: If corrected, update lessons.md immediately.
-
-## Code Quality
-<!-- Fill in project-specific commands -->
-- Format code: `{format_command}`
-- Lint code: `{lint_command}`
-- Fix linting issues: `{lint_fix_command}`
-
-## Key Files
-- `CLAUDE.md` — This file, Claude Code memory
-- `docs/spec.md` — Product specification
-- `docs/tech.md` — Technical architecture
-- `docs/lessons.md` — Lessons from past mistakes
-
-## Code Style & Conventions
-<!-- Add project-specific conventions below these universal rules -->
-
-### Universal Rules
-- Prefer composition/strategies over inheritance hierarchies — if subclasses only differ in 1-2 methods, use a strategy/callback instead
-- Use execute-around for paired actions (open/close, lock/unlock, setup/teardown) — expose one function with a callback so the caller can't forget cleanup
-- No magic literals — use named constants or zero-argument methods
-- Initialize all state at construction time — never rely on callers to set fields in the right order
-- Never return raw mutable collections from getters — return copies, immutable views, or domain-specific methods
-- Apply patterns incrementally — write code first, refactor when friction appears. Patterns are refactoring targets, not upfront mandates
-
-## Commands Reference
+## Commands
 ```sh
-# Build & verify (customize for your project)
 {build_command}
 {test_command}
 {lint_command}
 {format_command}
 ```
 
-## Known Pitfalls
-<!-- Add as they're discovered — this section grows over time -->
+## Docs
+- `docs/spec.md` — Product spec: features, business rules
+- `docs/tech.md` — Architecture: stack, schema, decisions
+- `docs/lessons.md` — Rules from past mistakes (update immediately on correction)
 
-## Things Claude Should NOT Do
-<!-- Most valuable section over time — add to it aggressively -->
-- Don't skip error handling
-- Don't commit without running tests first
-- Don't add abstractions or refactor code you weren't asked to touch
-- Don't assume intent on ambiguous bugs — ask first
+## Don'ts
+<!-- Most valuable section — add aggressively over time -->
+- Don't commit without running tests
+- Don't implement without failing tests first
+- Don't add abstractions you weren't asked for
+- Don't assume intent on ambiguous bugs — ask
 
 ## Principles
-- **Simplest correct solution.** Don't over-engineer. Don't gold-plate.
-- **Find root causes.** No temporary fixes. No band-aids.
-- **Minimal blast radius.** Only touch what's necessary.
-- **Own your mistakes.** When corrected, write a rule to prevent repeating it.
+- Simplest correct solution
+- Find root causes, no band-aids
+- Minimal blast radius
+- Own mistakes — write a rule to prevent repeating
 
-## Project-Specific Patterns
-<!-- Add patterns as they emerge from your codebase -->
+## Known Pitfalls
+<!-- Grows over time -->
 
 ---
-
 _Every mistake is a rule waiting to be written._
