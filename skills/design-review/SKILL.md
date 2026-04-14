@@ -35,36 +35,15 @@ If the task is borderline, tell the human: "This looks small enough to skip a fu
    ```
 3. For existing projects: verify `docs/` exists, check for prior design docs and CLAUDE.md
 
-## Phase 0.2: LSP Plugin Setup
+## Phase 0.2: ACP Tooling (optional)
 
-After the tech stack is identified (from the issue, existing project, or Phase 0.5 decision), install the appropriate Claude Code LSP plugin in the project directory. This gives Claude Code language-aware intelligence (go-to-definition, type checking, diagnostics) during implementation.
+After the tech stack is identified, install project-scoped language tooling only if the active ACP builder supports it.
 
-**Language → Plugin mapping:**
+- Keep it project-local
+- Install only the primary language tool
+- Skip this step if the builder has no equivalent support
 
-| Language | Plugin |
-|----------|--------|
-| TypeScript / JavaScript | `typescript-lsp@claude-plugins-official` |
-| Python | `pyright-lsp@claude-plugins-official` |
-| Rust | `rust-analyzer-lsp@claude-plugins-official` |
-| Go | `gopls-lsp@claude-plugins-official` |
-| C# | `csharp-lsp@claude-plugins-official` |
-| Java | `java-lsp@claude-plugins-official` |
-| Kotlin | `kotlin-lsp@claude-plugins-official` |
-| Swift | `swift-lsp@claude-plugins-official` |
-| PHP | `php-lsp@claude-plugins-official` |
-| Lua | `lua-lsp@claude-plugins-official` |
-| C / C++ | `clangd-lsp@claude-plugins-official` |
-
-**How to install:** Run the plugin CLI command from the project root directory:
-
-```bash
-cd ~/projects/<project-name> && claude plugin install <plugin>@claude-plugins-official --scope project
-```
-
-- Install **one** plugin per project based on the primary language
-- For multi-language projects (e.g., Rust + Elixir), install the plugin for the primary language being built in the current design
-- Skip if the plugin is already installed (check `.claude/plugins/` in project dir)
-- This runs once during design phase — all subsequent Claude Code sessions in that project automatically get LSP support
+Good design work matters more than editor extras.
 
 ## Phase 0.5: Approaches (before drafting)
 
@@ -77,28 +56,38 @@ Present these to the human. Only proceed to Phase 1 after an approach is chosen.
 
 ## Phase 1: Draft
 
-**IMPORTANT: Always delegate this to Claude Code.** The orchestrator (you) should NOT draft the design doc itself — that fills your context with code and architecture details you don't need to hold. Your job is to steer, not write.
+**IMPORTANT: Always delegate this to Codex.** The orchestrator should not draft the design doc itself. Your job is to steer, not write.
 
-Spawn a **Claude Code** session (via `sessions_spawn` with `runtime: "acp"` or the coding-agent skill) with these instructions in the task:
+Spawn a **Codex ACP** session (`sessions_spawn` with `runtime: "acp"` and `agentId: "codex"`, or the coding-agent skill if it preserves the same Codex ACP target) with these instructions in the task:
 - Read CLAUDE.md if it exists in the project repo
 - The Linear issue description and acceptance criteria (paste the full text)
 - The chosen approach from Phase 0.5 (paste your recommendation and the human's choice)
 - Any linked design docs or prior art
 - Draft the design doc at `docs/<issue-id>-design.md`
-- Create or update `CLAUDE.md` at project root using the template at `skills/design/CLAUDE_TEMPLATE.md`
+- Create or update `CLAUDE.md` at project root using the template at `skills/design-review/CLAUDE_TEMPLATE.md`
+- Merge the template with any existing project-specific guidance, do not bluntly overwrite useful repo-specific instructions
+- Preserve these behavioral guardrails from the template:
+  - state assumptions explicitly and surface ambiguity instead of guessing
+  - ask when the request is unclear, and push back if a simpler approach is better
+  - use short `step -> verify` plans for multi-step work
+  - keep test-first and explicit verification gates intact
+  - keep changes surgical, with minimal blast radius and no adjacent-drive-by cleanup
+  - prefer the simplest correct solution and avoid speculative abstractions
 
-If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, and coding conventions.
+**Fail closed:** If the ACP spawn fails or Codex cannot start, stop and report the exact error. Do **not** draft the design locally or substitute a different code-writing agent unless the human explicitly approves.
+
+If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and test-first verification rules.
 
 ### Design Doc Sections
 
-The design doc should cover these sections. Not every section needs to be long — scale depth to complexity. A simple webhook system needs 1-2 sentences per section; a real-time voice pipeline needs paragraphs.
+The design doc should cover these sections. Not every section needs to be long, scale depth to complexity. A simple webhook system needs 1-2 sentences per section; a real-time voice pipeline needs paragraphs.
 
 - **Problem**: what and why, not how
 - **Tech stack**: language, runtime version, key dependencies, and why they were chosen
 - **Approach**: chosen solution with key trade-offs documented
 - **Scope**: what's in, what's explicitly out
 - **Data flow**: how components interact (diagram if complex)
-- **User scenarios**: concrete walkthrough of how a user/agent interacts with this feature end-to-end
+- **User scenarios**: concrete walkthrough of how a user or agent interacts with this feature end-to-end
 - **Agent scenarios**: how the agent discovers, triggers, and uses this feature autonomously
 - **Edge cases & failure modes**: what happens when things go wrong. Start with the generic list (bad input, partial failure, resource exhaustion, race conditions), then add domain-specific failures:
   - *Real-time/streaming*: buffer management, jitter, latency budget breakdown per stage, graceful degradation under load
@@ -106,22 +95,22 @@ The design doc should cover these sections. Not every section needs to be long �
   - *Voice/audio*: hot mic, silence detection, audio corruption, concurrent sessions
   - *Networking*: thundering herd, connection pooling, retry storms
   - *Data pipeline*: schema drift, backpressure, exactly-once vs at-least-once
-- **Error UX**: what the user/agent sees when something fails — not just "returns error" but the actual message, recovery path, and fallback behavior
-- **Security & privacy**: trust model, what's allowed, what's blocked, how it's enforced. For sensitive data types (audio, PII, credentials, location), explicitly address: storage, transmission, retention, consent, and local-only processing requirements
-- **Performance requirements**: if the feature has latency, throughput, or resource constraints, state them explicitly with targets (e.g., "P50 < 10ms, P99 < 100ms"). Include a latency budget breakdown if multiple stages are involved
+- **Error UX**: what the user or agent sees when something fails
+- **Security & privacy**: trust model, what's allowed, what's blocked, how it's enforced
+- **Performance requirements**: explicit targets if latency, throughput, or resource constraints matter
 - **Open questions**: unresolved decisions flagged for human input
 
-**IMPORTANT: Focus on DESIGN, not code.** Keep code snippets minimal — only where they clarify an interface contract or data format. The doc should read as architecture and scenario coverage, not implementation pseudocode. A reader should understand every scenario, edge case, and UX decision without reading a single line of code.
+**IMPORTANT: Focus on DESIGN, not code.** Keep code snippets minimal, only where they clarify an interface contract or data format. The doc should read as architecture and scenario coverage, not implementation pseudocode.
 
 Target length: 2-5 pages for most features. If it's getting longer, you're probably including too much implementation detail.
 
-Keep both docs concise — docs that nobody reads are worse than no docs.
+Keep both docs concise, docs that nobody reads are worse than no docs.
 
 ## Phase 2: Review Loop
 
-Spawn a **reviewer session** (Sonnet model via `sessions_spawn` with `model: "sonnet"`) with this task:
+Spawn a **Claude Code reviewer** session via ACP (`sessions_spawn` with `runtime: "acp"` and `agentId: "claude"`) with this task:
 
-> Review the design doc at `docs/<issue-id>-design.md` in the project at `<repo-path>`. Evaluate on these axes and categorize each finding as Blocker, Recommendation, or Note. Write your review to `docs/<issue-id>-review.md`.
+> Review the design doc at `docs/<issue-id>-design.md` in the project at `<repo-path>`. Evaluate on these axes and categorize each finding as Blocker, Recommendation, or Note. Write your review to `docs/<issue-id>-review.md`. Do not edit the design doc.
 
 Review axes:
 
@@ -131,7 +120,7 @@ Review axes:
 | Architecture | Clean boundaries? Appropriate abstractions? Over-engineered? |
 | Tech stack | Right tool for the job? Dependencies justified? |
 | Trade-offs | Are alternatives considered? Is the rationale clear? |
-| Performance | Can the design meet stated latency/throughput targets? Is there a credible latency budget? |
+| Performance | Can the design meet stated latency or throughput targets? |
 | Risk | What breaks first? What's hardest to change later? |
 | Testability | Can the design be validated with automated tests? |
 
@@ -140,7 +129,9 @@ Categorize findings:
 - **Recommendation** — should address, human decides
 - **Note** — context for the builder, no action needed
 
-**Review loop:** If blockers are found, send them back to a Claude Code session to fix in the design doc, then re-dispatch the reviewer. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
+**Review loop:** If blockers are found, send them back to a fresh Codex ACP session (`runtime: "acp"`, `agentId: "codex"`) to revise the design doc, then re-dispatch Claude review. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
+
+If Claude review cannot run, stop and report the exact error. Do not silently skip review.
 
 ## Phase 3: Human Review
 
@@ -153,6 +144,7 @@ Iterate until:
 - All blockers are resolved
 - Tech stack is confirmed
 - CLAUDE.md accurately reflects project setup
+- CLAUDE.md still preserves the core guardrails from the template instead of drifting into vague project-only prose
 - Human explicitly approves
 
 Update both docs with any changes from this phase.
@@ -161,7 +153,7 @@ Update both docs with any changes from this phase.
 
 Once approved, break the design into implementation tasks:
 
-1. Decompose into discrete, shippable units of work. Each issue should be completable in roughly 1-3 hours of agent time. If an issue feels bigger, split it.
+1. Decompose into discrete, shippable units of work. Each issue should be completable in roughly 1-3 hours of agent time. If an issue feels bigger, split it. **Every implementation task must start with writing failing tests** — include this in the acceptance criteria.
 2. Order by dependency — set **Linear priority** so the build skill processes them in the correct sequence:
    - **P1 (Urgent):** Foundational work that everything else depends on (core structs, traits, base modules)
    - **P2 (High):** Features and changes that build on P1 foundations
@@ -174,5 +166,5 @@ Once approved, break the design into implementation tasks:
 ## Output
 
 - Approved design doc at `docs/<issue-id>-design.md`
-- `CLAUDE.md` at project root with build/test/lint commands and conventions
+- `CLAUDE.md` at project root with build/test/lint commands, project conventions, and the preserved behavioral guardrails from the template
 - Linear issues created with priorities set, linked to the design

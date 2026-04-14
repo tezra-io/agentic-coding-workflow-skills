@@ -11,6 +11,9 @@
 ### Planning
 - Plan mode for any non-trivial task (3+ steps or architectural decisions)
 - Detailed specs upfront — good plan = 1-shot implementation
+- State assumptions explicitly before coding. If multiple interpretations exist, surface them instead of picking silently.
+- If the request is ambiguous, ask. If a simpler approach exists, say so.
+- For multi-step work, write a short plan in `step -> verify` form.
 - If something goes sideways, STOP and re-plan
 
 ### Test-First (Mandatory)
@@ -40,7 +43,8 @@ Never mark done without proving it works.
 7. **Never swallow errors.** No bare `rescue`. No `{:error, _} -> :ok`. Log, raise, or return.
 8. **Visible side effects.** I/O obvious at call site. Separate pure from effectful.
 9. **Minimal indirection.** Readable > elegant. One layer of abstraction max.
-10. **Warnings = errors.** Linters, typecheckers, analyzers are hard gates. Zero warnings.
+10. **Surgical changes only.** Touch only what the request requires. Do not refactor adjacent code, comments, or formatting unless the task needs it. Remove only the dead code your change creates.
+11. **Warnings = errors.** Linters, typecheckers, analyzers are hard gates. Zero warnings.
 
 ## Conventions
 <!-- Project-specific: language idioms, error handling patterns, naming -->
@@ -63,10 +67,13 @@ Never mark done without proving it works.
 - Don't commit without running tests
 - Don't implement without failing tests first
 - Don't add abstractions you weren't asked for
+- Don't silently choose among ambiguous interpretations
+- Don't improve adjacent code that wasn't part of the request
 - Don't assume intent on ambiguous bugs — ask
 
 ## Principles
 - Simplest correct solution
+- If 200 lines could be 50, rewrite it
 - Find root causes, no band-aids
 - Minimal blast radius
 - Own mistakes — write a rule to prevent repeating
