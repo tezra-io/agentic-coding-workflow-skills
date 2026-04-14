@@ -70,13 +70,13 @@ Spawn a **Codex ACP** session (`sessions_spawn` with `runtime: "acp"` and `agent
   - state assumptions explicitly and surface ambiguity instead of guessing
   - ask when the request is unclear, and push back if a simpler approach is better
   - use short `step -> verify` plans for multi-step work
-  - keep test-first and explicit verification gates intact
+  - keep a single execution contract that requires failing tests first for behavior changes, explicit repo checks, and proof before done
   - keep changes surgical, with minimal blast radius and no adjacent-drive-by cleanup
   - prefer the simplest correct solution and avoid speculative abstractions
 
 **Fail closed:** If the ACP spawn fails or Codex cannot start, stop and report the exact error. Do **not** draft the design locally or substitute a different code-writing agent unless the human explicitly approves.
 
-If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and test-first verification rules.
+If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and a single execution contract for tests and proof.
 
 ### Design Doc Sections
 
