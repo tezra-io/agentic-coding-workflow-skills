@@ -46,7 +46,7 @@ backend Codex session id. Do not pass the OpenClaw `childSessionKey` as
 Claude reviewer:
 
 ```text
-sessions_spawn(runtime="acp", agentId="claude", model="anthropic/claude-opus-4-6", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1200)
+sessions_spawn(runtime="acp", agentId="claude", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1200)
 ```
 
 After spawning, check `session_status` first. Only read `sessions_history` after

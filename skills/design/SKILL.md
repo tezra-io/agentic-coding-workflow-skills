@@ -56,15 +56,21 @@ Present these to the human. Only proceed to Phase 1 after an approach is chosen.
 
 ## Phase 1: Draft
 
-**IMPORTANT: Always delegate this to Codex.** The orchestrator should not draft the design doc itself. Your job is to steer, not write.
+**Always delegate drafting to Codex.** The orchestrator steers, not writes.
 
-Spawn a **Codex ACP** session (`sessions_spawn` with `runtime: "acp"` and `agentId: "codex"`, or the coding-agent skill if it preserves the same Codex ACP target) with these instructions in the task:
-- Read CLAUDE.md if it exists in the project repo
+Spawn a Codex ACP session:
+
+```text
+sessions_spawn(runtime="acp", agentId="codex", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1800)
+```
+
+Task instructions:
+- Read `AGENTS.md` (or `CLAUDE.md`) if it exists in the project repo
 - The Linear issue description and acceptance criteria (paste the full text)
 - The chosen approach from Phase 0.5 (paste your recommendation and the human's choice)
 - Any linked design docs or prior art
 - Draft the design doc at `docs/<issue-id>-design.md`
-- Create or update `CLAUDE.md` at project root using the template at `skills/design-review/CLAUDE_TEMPLATE.md`
+- Create or update `CLAUDE.md` at project root using the template at `skills/design-review/CLAUDE_TEMPLATE.md`. Also create or update `AGENTS.md` with the same guidance so Codex picks it up automatically.
 - Merge the template with any existing project-specific guidance, do not bluntly overwrite useful repo-specific instructions
 - Preserve these behavioral guardrails from the template:
   - state assumptions explicitly and surface ambiguity instead of guessing
@@ -74,43 +80,37 @@ Spawn a **Codex ACP** session (`sessions_spawn` with `runtime: "acp"` and `agent
   - keep changes surgical, with minimal blast radius and no adjacent-drive-by cleanup
   - prefer the simplest correct solution and avoid speculative abstractions
 
-**Fail closed:** If the ACP spawn fails or Codex cannot start, stop and report the exact error. Do **not** draft the design locally or substitute a different code-writing agent unless the human explicitly approves.
+**Fail closed:** If the ACP spawn fails or Codex cannot start, stop and report the exact error. Do not draft the design locally or substitute a different agent unless the human explicitly approves.
 
-If `CLAUDE_TEMPLATE.md` doesn't exist, create a basic CLAUDE.md with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and a single execution contract for tests and proof.
+If `CLAUDE_TEMPLATE.md` doesn't exist, create both `CLAUDE.md` and `AGENTS.md` with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and a single execution contract for tests and proof.
 
-### Design Doc Sections
+### Design Doc Format
 
-The design doc should cover these sections. Not every section needs to be long, scale depth to complexity. A simple webhook system needs 1-2 sentences per section; a real-time voice pipeline needs paragraphs.
+Use the template at `docs/DESIGN_TEMPLATE.md`. The template is structured for
+both agents and humans: ASCII architecture diagrams, numbered data flows,
+concrete interfaces, and explicit failure modes.
 
-- **Problem**: what and why, not how
-- **Tech stack**: language, runtime version, key dependencies, and why they were chosen
-- **Approach**: chosen solution with key trade-offs documented
-- **Scope**: what's in, what's explicitly out
-- **Data flow**: how components interact (diagram if complex)
-- **User scenarios**: concrete walkthrough of how a user or agent interacts with this feature end-to-end
-- **Agent scenarios**: how the agent discovers, triggers, and uses this feature autonomously
-- **Edge cases & failure modes**: what happens when things go wrong. Start with the generic list (bad input, partial failure, resource exhaustion, race conditions), then add domain-specific failures:
-  - *Real-time/streaming*: buffer management, jitter, latency budget breakdown per stage, graceful degradation under load
-  - *Security/crypto*: key rotation, revocation, timing attacks
-  - *Voice/audio*: hot mic, silence detection, audio corruption, concurrent sessions
-  - *Networking*: thundering herd, connection pooling, retry storms
-  - *Data pipeline*: schema drift, backpressure, exactly-once vs at-least-once
-- **Error UX**: what the user or agent sees when something fails
-- **Security & privacy**: trust model, what's allowed, what's blocked, how it's enforced
-- **Performance requirements**: explicit targets if latency, throughput, or resource constraints matter
-- **Open questions**: unresolved decisions flagged for human input
+Scale depth to complexity. A simple webhook system needs 1-2 sentences per
+section; a real-time voice pipeline needs paragraphs.
 
-**IMPORTANT: Focus on DESIGN, not code.** Keep code snippets minimal, only where they clarify an interface contract or data format. The doc should read as architecture and scenario coverage, not implementation pseudocode.
+**Focus on DESIGN, not code.** Keep code snippets to interface contracts and
+data formats only. The doc should read as architecture and scenario coverage,
+not implementation pseudocode.
 
-Target length: 2-5 pages for most features. If it's getting longer, you're probably including too much implementation detail.
-
-Keep both docs concise, docs that nobody reads are worse than no docs.
+Target length: 2-5 pages. If longer, you're including too much implementation
+detail. Keep it concise — docs nobody reads are worse than no docs.
 
 ## Phase 2: Review Loop
 
-Spawn a **Claude Code reviewer** session via ACP (`sessions_spawn` with `runtime: "acp"` and `agentId: "claude"`) with this task:
+Spawn a Claude reviewer session:
 
-> Review the design doc at `docs/<issue-id>-design.md` in the project at `<repo-path>`. Evaluate on these axes and categorize each finding as Blocker, Recommendation, or Note. Write your review to `docs/<issue-id>-review.md`. Do not edit the design doc.
+```text
+sessions_spawn(runtime="acp", agentId="claude", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1200)
+```
+
+Task:
+
+> Review the design doc at `docs/<issue-id>-design.md`. Evaluate on these axes and categorize each finding as Blocker, Recommendation, or Note. Write your review to `docs/<issue-id>-review.md`. Do not edit the design doc.
 
 Review axes:
 
@@ -129,7 +129,7 @@ Categorize findings:
 - **Recommendation** — should address, human decides
 - **Note** — context for the builder, no action needed
 
-**Review loop:** If blockers are found, send them back to a fresh Codex ACP session (`runtime: "acp"`, `agentId: "codex"`) to revise the design doc, then re-dispatch Claude review. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
+**Review loop:** If blockers are found, send them back to the same Codex session (via `sessions_send`) to revise the design doc, then re-dispatch Claude review. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
 
 If Claude review cannot run, stop and report the exact error. Do not silently skip review.
 
@@ -143,11 +143,11 @@ Present to the human:
 Iterate until:
 - All blockers are resolved
 - Tech stack is confirmed
-- CLAUDE.md accurately reflects project setup
-- CLAUDE.md still preserves the core guardrails from the template instead of drifting into vague project-only prose
+- `CLAUDE.md` and `AGENTS.md` accurately reflect project setup
+- Both still preserve the core guardrails from the template instead of drifting into vague project-only prose
 - Human explicitly approves
 
-Update both docs with any changes from this phase.
+Update design doc, `CLAUDE.md`, and `AGENTS.md` with any changes from this phase.
 
 ## Phase 4: Task Breakdown
 
@@ -160,11 +160,11 @@ Once approved, break the design into implementation tasks:
    - **P3-P4 are reserved for upstream port issues** — never use them for manual/feature work
 3. Each task: title, description with acceptance criteria, and estimated scope (S/M/L)
 4. Create issues in **Linear** — **always pass `--project "<project-name>"`** so they're tagged to the correct project. Look up the project name from `linear project list --team <team>` or ask the human. Issues without a project tag won't be picked up by build crons.
-5. Link the design doc in each issue description (relative path from repo root, e.g., `docs/TEZ-200-design.md`)
+5. Link the design doc in each issue description (relative path from repo root, e.g., `docs/<issue-id>-design.md`)
 6. If the feature has performance requirements, include a dedicated benchmarking issue (e.g., "Add benchmarks to validate sub-200ms latency target")
 
 ## Output
 
 - Approved design doc at `docs/<issue-id>-design.md`
-- `CLAUDE.md` at project root with build/test/lint commands, project conventions, and the preserved behavioral guardrails from the template
+- `CLAUDE.md` and `AGENTS.md` at project root with build/test/lint commands, project conventions, and the preserved behavioral guardrails from the template
 - Linear issues created with priorities set, linked to the design
