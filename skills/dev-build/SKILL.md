@@ -25,32 +25,98 @@ linting, tests, full gates, code edits, commits, and pushes.
 - Night memory: `/Users/sujshe/.openclaw/workspace/dev-sessions/memory/YYYY-MM-DD-night.md`
 - Project registry: `/Users/sujshe/.openclaw/workspace/PROJECTS.yaml`
 
-## ACP Sessions
+## CLI Invocations
 
-Codex builder/fixer/shipper (new session):
+OpenClaw orchestrates via the `exec` tool and invokes the Codex and Claude CLIs
+directly. No ACP subagents, no announce-timeout. Each run is bounded by the
+`exec` tool's per-call `timeoutSec`.
 
-```text
-sessions_spawn(runtime="acp", agentId="codex", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1800)
+Prompts are passed via heredoc on stdin — no prompt files to maintain, no shell
+escaping, no ARG_MAX concerns, safe for any content (code snippets, JSON
+blobs, quotes, `$`, backticks). The quoted `<<'EOF'` delimiter prevents shell
+expansion inside the prompt.
+
+**Verify CLI flags once against your installed versions** —
+`codex exec --help` and `claude --help`. The skill assumes:
+
+- Codex new session: `codex exec`
+- Codex continuation: `codex exec resume --last` (fallback if `--last` is not
+  supported: capture the session id printed by the initial run, then use
+  `codex exec resume <session-id>`).
+- Claude new session (print mode): `claude -p`
+- Claude continuation: `claude -p --continue` (fallback: `claude -p --resume <session-id>`).
+
+### Codex builder / fixer / shipper — new session
+
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1800,
+  command="""
+codex exec \
+  --dangerously-bypass-approvals-and-sandbox \
+  <<'CODEX_EOF'
+<builder prompt>
+CODEX_EOF
+"""
+)
 ```
 
-Codex reuse for follow-up work in the same project:
+### Codex continuation — follow-up work in the same project
 
-```text
-sessions_send(sessionKey="<codex-child-session-key>", message="<next task>", timeoutSeconds=1800)
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1800,
+  command="""
+codex exec resume --last \
+  --dangerously-bypass-approvals-and-sandbox \
+  <<'CODEX_EOF'
+<next task prompt>
+CODEX_EOF
+"""
+)
 ```
 
-Use `resumeSessionId` only when starting a new ACP wrapper around an existing
-backend Codex session id. Do not pass the OpenClaw `childSessionKey` as
-`resumeSessionId`.
+### Claude reviewer — new session, per issue
 
-Claude reviewer:
-
-```text
-sessions_spawn(runtime="acp", agentId="claude", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1200)
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1200,
+  command="""
+claude -p \
+  --dangerously-skip-permissions \
+  <<'CLAUDE_EOF'
+<reviewer prompt>
+CLAUDE_EOF
+"""
+)
 ```
 
-After spawning, check `session_status` first. Only read `sessions_history` after
-the child finishes, fails, or times out. ACP history can lag behind completion.
+### Claude continuation — if review is incomplete or asks to continue
+
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1200,
+  command="""
+claude -p --continue \
+  --dangerously-skip-permissions \
+  <<'CLAUDE_EOF'
+Continue the review you started. Finish it in one run.
+CLAUDE_EOF
+"""
+)
+```
+
+### Output handling
+
+The CLI exits non-zero on failure. The orchestrator parses stdout for the
+structured output contract — `CHANGED_FILES` / `VERIFICATION` / `SUMMARY` or
+`FAILED_NO_CHANGES` for Codex; `OUTCOME` / `FINDINGS` / `SUMMARY` for Claude.
+No separate status-polling step is needed — process exit is the completion
+signal.
 
 ---
 
@@ -66,7 +132,7 @@ issues.
 
 ### Repo state check
 
-The repo state check is done by Codex inside the ACP session, not by OpenClaw.
+The repo state check is done by Codex inside the CLI run, not by OpenClaw.
 Before changing files, Codex must run and report:
 
 ```bash
@@ -92,21 +158,24 @@ If the repo is unsafe to continue, Codex must stop without editing and return
 
 ## Phase 1: Build (TDD)
 
-Spawn a Codex ACP session for the project. For follow-up issues **in the same
-project**, reuse the existing Codex child session with `sessions_send` so Codex
-retains codebase context. Track both the OpenClaw child session key and any
-backend ACP session id returned by the spawn/status output.
+Run the Codex CLI for the project. For the first issue in a project use
+`codex exec` (new session). For follow-up issues **in the same project**, use
+`codex exec resume --last` so Codex retains codebase context from the previous
+issue. Capture any session id printed by the CLI — it's the fallback if
+`--last` is not supported or the most-recent-session pointer gets lost.
 
-**Session reuse is scoped to the current project only.** When the caller moves
-to a different project, terminate the current Codex and Claude sessions and
-start fresh. Do not carry a session from one project's repo into another.
+**Session continuation is scoped to the current project only.** When the
+caller moves to a different project, start a fresh `codex exec` (new session)
+in the new repo. Do not carry a session from one project's repo into another.
 
-When reusing a session for a follow-up issue, instruct Codex to run `/compact`
-before starting any new work to free up context from the previous issue.
+When continuing a session for a follow-up issue, instruct Codex to run
+`/compact` before starting any new work to free up context from the previous
+issue.
 
-If the previous session is no longer usable (send fails or the session is no
-longer visible), spawn a fresh Codex session and instruct it to read the repo's
-AGENTS.md and explore the codebase structure before making any changes.
+If continuation fails (the CLI reports no session to resume, or the prior
+session id is invalid), fall back to a fresh `codex exec` call and instruct
+Codex to read the repo's AGENTS.md and explore the codebase structure before
+making any changes.
 
 ### Orchestrator pre-work
 
@@ -198,20 +267,22 @@ FAILED_NO_CHANGES: <exact blocker>
 
 ### Outcome check
 
-After every Codex run, inspect the child response and session history. Do not
-run repo commands from OpenClaw.
+After every Codex run, inspect the CLI's stdout (and stderr on non-zero exit).
+Do not run repo commands from OpenClaw.
 
 - Missing changed files, missing `git status --short`, missing
   `git diff --name-only`, or missing verification output = no-op.
 - Commentary-only output = no-op.
-- First no-op gets one corrective retry with concrete evidence of what was
-  missing and explicit file-level instructions.
+- Non-zero exit with no structured output = treat as failure, not no-op;
+  report stderr in the blocker evidence.
+- First no-op gets one corrective retry via `codex exec resume --last` with
+  concrete evidence of what was missing and explicit file-level instructions.
 - Second no-op = hard blocker. Write latch, log to memory, stop queue.
 
-If a child asks a question inferable from the issue, design doc, repo, or
-instructions, answer once and resume the same session. Only escalate for real
-product decisions, missing credentials, missing external facts, or unresolvable
-ambiguity.
+If Codex asks a question inferable from the issue, design doc, repo, or
+instructions, answer once via `codex exec resume --last` to continue the same
+session. Only escalate for real product decisions, missing credentials,
+missing external facts, or unresolvable ambiguity.
 
 ## Phase 2: Gate
 
@@ -275,8 +346,8 @@ SUMMARY:
 <one-line verdict>
 ```
 
-If Claude returns incomplete or asks to continue, resume once. If still
-incomplete, treat as blocked.
+If Claude returns incomplete or asks to continue, resume once via
+`claude -p --continue`. If still incomplete, treat as blocked.
 
 ## Phase 4: Fix
 
@@ -284,10 +355,12 @@ If review returns `revise`:
 
 1. Evaluate the findings first. Determine which P0s and P1s actually need
    fixing, which are out of scope, and which should become follow-up issues.
-2. Send the actionable findings to the **same Codex session** with the current
-   diff context and the builder output contract.
+2. Send the actionable findings to the **same Codex session** via
+   `codex exec resume --last` with the current diff context and the builder
+   output contract.
 3. After fixes, re-run the gate (Phase 2).
-4. Re-run Claude review (Phase 3).
+4. Re-run Claude review (Phase 3) as a fresh `claude -p` session — the
+   reviewer should not remember prior rounds.
 5. Max 5 fix/review rounds. If the loop does not converge, write blocker latch
    and stop.
 
@@ -295,7 +368,8 @@ If review returns `revise`:
 
 Codex handles shipping — the orchestrator does not commit or push.
 
-When Claude review returns `OUTCOME: pass`, send the same Codex session:
+When Claude review returns `OUTCOME: pass`, resume the same Codex session
+with `codex exec resume --last`:
 
 ```text
 Review passed. Commit the current changes on the default branch and push.
@@ -336,7 +410,7 @@ For batches of 3+ issues, spawn a Claude review of the full diff range first:
 3. Send all findings to the same Codex session for fixes. Only create follow-up
    Linear issues (tagged to the originals) for findings Codex cannot resolve.
 
-Then send the same Codex session:
+Then resume the same Codex session with `codex exec resume --last`:
 
 ```text
 All issues for this project are shipped.
@@ -356,9 +430,11 @@ If nothing to do, reply: NO_SWEEP_CHANGES.
 
 ## Session Cleanup
 
-After the project is fully done (issues + sweep + README):
+CLI invocations exit on their own — there are no long-lived sessions to
+terminate. After the project is fully done (issues + sweep + README):
 
-1. Terminate Codex and Claude sessions for this project.
+1. Stop using `codex exec resume --last` for this project. The next project
+   starts with a fresh `codex exec` call, which establishes its own session.
 2. Return to the caller with status `clear` or `blocked`.
 
 ---

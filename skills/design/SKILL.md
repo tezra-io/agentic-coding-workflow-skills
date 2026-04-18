@@ -35,9 +35,9 @@ If the task is borderline, tell the human: "This looks small enough to skip a fu
    ```
 3. For existing projects: verify `docs/` exists, check for prior design docs and CLAUDE.md
 
-## Phase 0.2: ACP Tooling (optional)
+## Phase 0.2: Builder Tooling (optional)
 
-After the tech stack is identified, install project-scoped language tooling only if the active ACP builder supports it.
+After the tech stack is identified, install project-scoped language tooling only if the active builder CLI supports it.
 
 - Keep it project-local
 - Install only the primary language tool
@@ -58,11 +58,24 @@ Present these to the human. Only proceed to Phase 1 after an approach is chosen.
 
 **Always delegate drafting to Codex.** The orchestrator steers, not writes.
 
-Spawn a Codex ACP session:
+Run the Codex CLI directly via heredoc:
 
-```text
-sessions_spawn(runtime="acp", agentId="codex", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1800)
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1800,
+  command="""
+codex exec \
+  --dangerously-bypass-approvals-and-sandbox \
+  <<'CODEX_EOF'
+<drafting prompt — task instructions below>
+CODEX_EOF
+"""
+)
 ```
+
+For follow-up revisions in the same draft cycle, use
+`codex exec resume --last` to retain context from the initial draft.
 
 Task instructions:
 - Read `AGENTS.md` (or `CLAUDE.md`) if it exists in the project repo
@@ -80,7 +93,7 @@ Task instructions:
   - keep changes surgical, with minimal blast radius and no adjacent-drive-by cleanup
   - prefer the simplest correct solution and avoid speculative abstractions
 
-**Fail closed:** If the ACP spawn fails or Codex cannot start, stop and report the exact error. Do not draft the design locally or substitute a different agent unless the human explicitly approves.
+**Fail closed:** If the Codex CLI fails to start or exits non-zero without a usable draft, stop and report the exact error (including stderr). Do not draft the design locally or substitute a different agent unless the human explicitly approves.
 
 If `CLAUDE_TEMPLATE.md` doesn't exist, create both `CLAUDE.md` and `AGENTS.md` with: project overview, tech stack, build/test/lint commands, directory structure, coding conventions, explicit ambiguity-handling rules, surgical-change rules, and a single execution contract for tests and proof.
 
@@ -102,10 +115,20 @@ detail. Keep it concise — docs nobody reads are worse than no docs.
 
 ## Phase 2: Review Loop
 
-Spawn a Claude reviewer session:
+Run the Claude reviewer CLI directly via heredoc:
 
-```text
-sessions_spawn(runtime="acp", agentId="claude", mode="run", cleanup="keep", sandbox="inherit", cwd="<repo>", runTimeoutSeconds=1200)
+```bash
+exec(
+  cwd="<repo>",
+  timeoutSec=1200,
+  command="""
+claude -p \
+  --dangerously-skip-permissions \
+  <<'CLAUDE_EOF'
+<reviewer task below>
+CLAUDE_EOF
+"""
+)
 ```
 
 Task:
@@ -129,9 +152,9 @@ Categorize findings:
 - **Recommendation** — should address, human decides
 - **Note** — context for the builder, no action needed
 
-**Review loop:** If blockers are found, send them back to the same Codex session (via `sessions_send`) to revise the design doc, then re-dispatch Claude review. Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
+**Review loop:** If blockers are found, send them back to the same Codex session via `codex exec resume --last` to revise the design doc, then re-dispatch Claude review as a fresh `claude -p` call (the reviewer should not carry prior-round history). Repeat until all blockers are resolved. **Max 5 iterations** — if still unresolved after 5 rounds, escalate to the human with all findings and the full review history.
 
-If Claude review cannot run, stop and report the exact error. Do not silently skip review.
+If the Claude CLI cannot run or exits non-zero without producing a review, stop and report the exact error (including stderr). Do not silently skip review.
 
 ## Phase 3: Human Review
 

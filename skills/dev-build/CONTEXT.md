@@ -33,8 +33,16 @@ The cron prompt owns the project loop. The skill handles one project at a time.
 
 1. Check the blocker latch at
    `/Users/sujshe/.openclaw/workspace/dev-sessions/state/night-build-blocked.json`.
-   If it exists and no new human instruction clears it, stop and return the
-   blocker.
+   If it exists, read it and validate whether it still points at an actionable
+   issue in the current Linear queue.
+   - If the latched issue no longer exists, is completed/canceled, or is no
+     longer returned by the current active issue scan for its project, treat the
+     latch as stale: archive or clear it, note why in tonight's memory, and
+     continue.
+   - If the human explicitly tells you to clear or bypass the stale latch,
+     archive or clear it, note that in tonight's memory, and continue.
+   - Only stop and return the blocker when the latched issue is still active
+     and actionable and there is no new human instruction clearing it.
 2. Read `PROJECTS.yaml`. Process projects one at a time in registry order.
 3. For each project, invoke the `dev-build` skill with that project as the
    target. The skill processes all actionable issues for that project.
