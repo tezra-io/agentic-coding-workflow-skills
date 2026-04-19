@@ -125,15 +125,59 @@ signal.
 The caller provides the target project. This skill fetches and processes its
 issues.
 
+### Repo readiness (orchestrator pre-flight, non-negotiable)
+
+Before touching Linear or spawning Codex, the orchestrator runs a pre-flight
+check against the target repo. This catches the case where the human is
+actively editing the repo in parallel with the cron — the cron must not
+build on top of ambiguous dirty work and must not halt the whole queue for
+it.
+
+```bash
+cd <repo>
+git fetch --quiet origin
+git status --short
+git branch --show-current
+git rev-list --left-right --count HEAD...origin/<default-branch>
+```
+
+Rules:
+
+- Working tree must be clean (`git status --short` empty). Lock files count
+  as dirty for this check — the pre-flight is a human-activity detector, not
+  a dependency-graph resolver.
+- Current branch must be the repo default (`main` unless overridden in
+  `PROJECTS.yaml`).
+- Local must match `origin/<default>` exactly (both counts zero).
+
+If any check fails, the project is considered **in use by the human**. Do
+not fetch Linear issues. Do not spawn Codex. Write a **soft blocker** latch
+for this project (see *Blocker Handling → severity*) and return to the
+caller with status `soft_blocked`. The caller continues to the next project.
+
+If all checks pass, continue to issue selection.
+
+### Issue selection
+
 1. Fetch Linear issues for the target project, sorted by priority. Skip issues
    that are Done, Cancelled, or Blocked.
 2. If an issue depends on another issue that is not Done, skip it.
-3. If no actionable issues exist, return to the caller with status `clear`.
+3. **Stale-backlog auto-close.** For each candidate issue, check the repo
+   history for an exact issue-id reference:
+   `git log --oneline --grep="\\b<issue-id>\\b"`. If a match exists, the
+   work already shipped and Linear is stale. Comment on the Linear issue with
+   the commit SHA(s) and move it to Done. Remove it from the active queue.
+   Do not auto-close on fuzzy matches (title words, phase numbers without
+   issue id) — require the literal id.
+4. If no actionable issues remain after stale-close, return to the caller
+   with status `clear`.
 
-### Repo state check
+### Repo state check (Codex-side, in-run)
 
-The repo state check is done by Codex inside the CLI run, not by OpenClaw.
-Before changing files, Codex must run and report:
+The orchestrator's pre-flight guards against *parallel human work*. Codex
+still runs its own repo state check inside the CLI run to guard against
+*mid-flight drift* (e.g. lock files touched by a dependency install it
+itself triggered). Before changing files, Codex must run and report:
 
 ```bash
 git branch --show-current
@@ -349,9 +393,26 @@ SUMMARY:
 If Claude returns incomplete or asks to continue, resume once via
 `claude -p --continue`. If still incomplete, treat as blocked.
 
+### Outcome routing (non-negotiable)
+
+Route strictly on the `OUTCOME:` token from the review, not on the tone of
+the findings or your own judgement of the diff:
+
+- `OUTCOME: pass` → **skip Phase 4. Go straight to Phase 5 (Ship).** Do not
+  launch a Codex fixer to polish nits, tighten wording, or address P1/P2
+  findings. If any findings are worth keeping, file them as follow-up Linear
+  issues during Phase 5, but do not edit the diff on a passing review.
+- `OUTCOME: revise` → go to Phase 4 (Fix). Do not ship.
+- `OUTCOME: blocked` → write blocker latch, stop the queue.
+
+An extra fix pass on a passing review wastes a round-trip, risks regressing
+the approved diff, and can flip a clean ship into a re-review loop. The
+reviewer is the gate; trust the gate.
+
 ## Phase 4: Fix
 
-If review returns `revise`:
+Run only when review returned `OUTCOME: revise`. Do not enter this phase on
+`pass` or `blocked`.
 
 1. Evaluate the findings first. Determine which P0s and P1s actually need
    fixing, which are out of scope, and which should become follow-up issues.
@@ -441,21 +502,41 @@ terminate. After the project is fully done (issues + sweep + README):
 
 ## Blocker Handling
 
-If a hard blocker cannot be resolved in-flow:
+A blocker has a **severity** that tells the caller how far to unwind.
+
+### Severity
+
+- `soft` — a transient, project-scoped condition the cron should not fight:
+  the human is editing the repo in parallel, the repo is on a feature
+  branch, the tree is ahead/behind origin, or similar. The project is
+  skipped for this run; the caller continues to the next project.
+- `hard` — a real blocker on a specific issue that needs human attention:
+  failing gate after max fix rounds, missing acceptance criteria, code-level
+  contradictions, etc. The caller halts the entire queue.
+
+Do not promote a `soft` latch to `hard`. If the next run's pre-flight still
+fails the same way, it writes a fresh `soft` latch.
+
+### Writing a latch
 
 1. Write latch:
    ```json
    {
-     "issue": "<issue-id>",
+     "issue": "<issue-id or null for project-level soft>",
      "project": "<project>",
      "timestamp": "<ISO-8601>",
+     "severity": "soft" | "hard",
      "blocker": "<exact root cause>",
      "evidence": ["<short evidence>"]
    }
    ```
+   For a soft pre-flight block, `issue` is `null` (no issue was selected yet).
 2. Append to night memory.
-3. Reply: `<issue> blocked: <exact root cause>. Need human help.`
-4. Stop the queue. Do not continue to other issues.
+3. Reply to the caller:
+   - On `hard`: `<issue> blocked: <exact root cause>. Need human help.`
+   - On `soft`: `<project> skipped: <exact root cause>.`
+4. On `hard`, stop the queue. On `soft`, return to the caller with
+   `soft_blocked` so it moves to the next project.
 
 ## Memory
 
