@@ -1,0 +1,59 @@
+{
+  "skill_name": "deep-research",
+  "evals": [
+    {
+      "id": 0,
+      "name": "restaurant-profile",
+      "prompt": "I'm trying to decide whether to take a client to Le Bernardin in NYC next month. Can you put together a quick profile? I need: head chef's name, michelin star count, cuisine type, average dinner price per person in USD, dress code, and the URL where I'd actually book a reservation. Cite sources for each fact so I can double-check the prices haven't moved.",
+      "expected_output": "Markdown report containing all six requested fields with at least one citation URL per fact, ideally with per-field provenance.",
+      "files": [],
+      "assertions": [
+        {"text": "report.md exists in the outputs/ directory"},
+        {"text": "Names a specific head chef (not 'unknown' or vague)"},
+        {"text": "States a specific Michelin star count (an integer)"},
+        {"text": "States cuisine type"},
+        {"text": "Provides a concrete dinner price per person figure in USD"},
+        {"text": "Includes a real reservation URL pointing to lebernardin.com, Resy, Tock, or OpenTable"},
+        {"text": "Mentions a specific dress code"},
+        {"text": "Has at least 3 distinct citation URLs across the six fields"},
+        {"text": "Includes a confidence/staleness note"}
+      ]
+    },
+    {
+      "id": 1,
+      "name": "company-discovery",
+      "prompt": "I'm a VC associate sourcing for a Series B fund. Find me 8-10 companies in the developer-tooling space (specifically: testing, CI/CD, observability, code quality) that recently raised Series A or B. For each, give me: company name, what they do in one sentence, last announced round size, and HQ city. I'd rather have 8 well-described companies than 15 thin entries.",
+      "expected_output": "A table or list with 8-10 companies, each with the four requested fields filled in, with citations to funding announcements.",
+      "files": [],
+      "assertions": [
+        {"text": "report.md exists"},
+        {"text": "Contains 8 or more company entries"},
+        {"text": "Each entry has a clear company name"},
+        {"text": "Each entry has a one-sentence description"},
+        {"text": "At least 80% of entries name a concrete round size"},
+        {"text": "At least 80% of entries name an HQ city"},
+        {"text": "Each entry has at least one citation URL"},
+        {"text": "Companies span at least two of: testing / CI-CD / observability / code quality"},
+        {"text": "No obvious dupes"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "place-itinerary",
+      "prompt": "I'm flying into Lisbon next Friday morning for the weekend - touch down ~10am Friday, leaving Sunday afternoon. I really want to see Alfama and Belém. Build me a real 2-day itinerary with specific places, opening hours where they matter (the monasteries close early on Mondays I think?), how to get between them, and one good food stop per half-day. Don't include obvious tourist traps. Cite where you got hours/closures from.",
+      "expected_output": "A structured day-by-day itinerary with named places, opening hour callouts, transit notes, and at least 4 food stops, all with citations to recent sources.",
+      "files": [],
+      "assertions": [
+        {"text": "report.md exists"},
+        {"text": "Covers at least 2 distinct days with named places"},
+        {"text": "Includes specific places in BOTH Alfama and Belém"},
+        {"text": "Names at least 4 specific food stops"},
+        {"text": "Includes opening hours for Jerónimos Monastery"},
+        {"text": "Mentions transit between Alfama and Belém"},
+        {"text": "Has at least 5 citation URLs"},
+        {"text": "Addresses the closure question (Mondays / specific weekday closures)"},
+        {"text": "Includes a tourist-traps-to-skip note"}
+      ]
+    }
+  ]
+}

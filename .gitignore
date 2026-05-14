@@ -1,3 +1,6 @@
 CLAUDE.md
 PROJECTS.yaml
 nightly-build-monitor.md
+skills/deep-research-workspace/
+.DS_Store
+skills/deep-research/scripts/__pycache__/
